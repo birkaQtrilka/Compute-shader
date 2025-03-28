@@ -4,10 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Unity.Mathematics;
+using UnityEngine;
 
 namespace Assets
 {
-    public class HashTest
+    public class HashTest : MonoBehaviour
     {
         public const int TABLE_SIZE = 1024;
         struct BoidData
@@ -83,5 +84,7 @@ namespace Assets
                 destination = newValue; // Update if it matches expected value
             }
         }
+
+
     }
 }
