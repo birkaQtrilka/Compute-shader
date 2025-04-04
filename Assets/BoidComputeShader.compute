@@ -10,53 +10,53 @@ struct BoidData
     float3 position;
 };
 
-struct Buffa
-{
-    uint offset = 0;
-    uint size = 50;
-    BoidData value[50];
+//struct Buffa
+//{
+//    uint offset = 0;
+//    uint size = 50;
+//    BoidData value[50];
     
-};
+//};
 
-struct HashEntry
-{
-    uint3 key;
-    Buffa array;
-};
+//struct HashEntry
+//{
+//    uint3 key;
+//    Buffa array;
+//};
 
-RWStructuredBuffer<HashEntry> hashTable;
+//RWStructuredBuffer<HashEntry> hashTable;
 
-bool KeysMatch(uint3 a, uint3 b)
-{
-    return all(a == b);
-}
+//bool KeysMatch(uint3 a, uint3 b)
+//{
+//    return all(a == b);
+//}
 
-uint HashFunction(uint3 key)
-{
-    return (key.x * 73856093 ^ key.y * 19349663 ^ key.z * 83492791) % TABLE_SIZE;
-}
+//uint HashFunction(uint3 key)
+//{
+//    return (key.x * 73856093 ^ key.y * 19349663 ^ key.z * 83492791) % TABLE_SIZE;
+//}
 
-[numthreads(1, 1, 1)]
-void Insert(uint3 id : SV_DispatchThreadID, uint3 key, uint value)
-{
-    uint index = HashFunction(key);
-    uint3 originalKey;
+//[numthreads(1, 1, 1)]
+//void Insert(uint3 id : SV_DispatchThreadID, uint3 key, uint value)
+//{
+//    uint index = HashFunction(key);
+//    uint3 originalKey;
 
-    // Linear Probing
-    for (uint i = 0; i < TABLE_SIZE; i++)
-    {
-        uint probeIndex = (index + i) % TABLE_SIZE;
-        InterlockedCompareExchange(hashTable[probeIndex].key.x, 0, key.x, originalKey.x);
-        InterlockedCompareExchange(hashTable[probeIndex].key.y, 0, key.y, originalKey.y);
-        InterlockedCompareExchange(hashTable[probeIndex].key.z, 0, key.z, originalKey.z);
+//    // Linear Probing
+//    for (uint i = 0; i < TABLE_SIZE; i++)
+//    {
+//        uint probeIndex = (index + i) % TABLE_SIZE;
+//        InterlockedCompareExchange(hashTable[probeIndex].key.x, 0, key.x, originalKey.x);
+//        InterlockedCompareExchange(hashTable[probeIndex].key.y, 0, key.y, originalKey.y);
+//        InterlockedCompareExchange(hashTable[probeIndex].key.z, 0, key.z, originalKey.z);
 
-        if (all(originalKey == 0) || KeysMatch(originalKey, key))
-        {
-            hashTable[probeIndex].array = value;
-            return;
-        }
-    }
-}
+//        if (all(originalKey == 0) || KeysMatch(originalKey, key))
+//        {
+//            hashTable[probeIndex].array = value;
+//            return;
+//        }
+//    }
+//}
 
 //Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
@@ -190,30 +190,21 @@ void SteeringForcesCS(
     if(boidsInRange > 0)
     {
         float total = (float) boidsInRange;
+        float3 zero = float3(0, 0, 0);
+        
         separationSteering = separationPositionOffset / total; // Calculate the average
-        if (length(separationSteering) > 0)
-            separationSteering = normalize(separationSteering) * _BoidMaximumSpeed;
-        else
-            separationSteering = float3(0, 0, 0);
-
+        separationSteering = length(separationSteering) > 0 ? normalize(separationSteering) * _BoidMaximumSpeed : zero;
         separationSteering = separationSteering - P_velocity; // Calculate steering force
         separationSteering = limit(separationSteering, _BoidMaximumSteeringForce); // Limit the steering force
-    
+        
         alignmentSteering = alignmentPositionOffset / total;
-        if (length(alignmentSteering) > 0)
-            alignmentSteering = normalize(alignmentSteering) * _BoidMaximumSpeed;
-        else
-            alignmentSteering = float3(0, 0, 0);
-
+        alignmentSteering = length(alignmentSteering) > 0 ? normalize(alignmentSteering) * _BoidMaximumSpeed : zero;
         alignmentSteering = alignmentSteering - P_velocity;
         alignmentSteering = limit(alignmentSteering, _BoidMaximumSteeringForce);
         
         cohesionPositionOffset = cohesionPositionOffset / total;
         cohesionSteering = cohesionPositionOffset - P_position;
-        if (length(cohesionSteering) > 0)
-            cohesionSteering = normalize(cohesionSteering) * _BoidMaximumSpeed;
-        else
-            cohesionSteering = float3(0, 0, 0);
+        cohesionSteering = length(cohesionSteering) > 0 ? normalize(cohesionSteering) * _BoidMaximumSpeed : zero;
         cohesionSteering = cohesionSteering - P_velocity;
         cohesionSteering = limit(cohesionSteering, _BoidMaximumSteeringForce);
     }

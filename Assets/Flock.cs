@@ -1,26 +1,33 @@
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
-using UnityEngine.UIElements;
-using static UnityEditor.Searcher.SearcherWindow;
+using static UnityEditor.PlayerSettings;
 
-public abstract class Flocking<T> : MonoBehaviour where T : Boid
+public abstract class FlockingBase : MonoBehaviour
+{
+
+}
+
+
+public abstract class Flocking<T> : FlockingBase where T : Boid
 {
 
     [SerializeField] protected float _maxForce;
     [SerializeField] protected float _maxSpeed;
     [SerializeField] protected float _persceptionDistance;
-    [SerializeField] protected int _boidCount;
+    public int _boidCount;
     [SerializeField] protected Vector3 _areaSize;
 
     [SerializeField] protected float _alignmentBias = 1; 
     [SerializeField] protected float _cohesionBias = 1;
     [SerializeField] protected float _sepparationBias = 1;
     [SerializeField] protected float _wallRepellForce = 5;
+    [SerializeField] protected float _binSize = .5f;
+    [SerializeField] bool _binSearch;
 
     protected T[] _boids;
-    // readonly QuadTree<Boid> _quadTree;
-    readonly List<T> _flock = new();
+    List<T> _flock;
+
+    Dictionary<Vector3Int, List<T>> _bins;
 
     struct FlockData
     {
@@ -29,15 +36,19 @@ public abstract class Flocking<T> : MonoBehaviour where T : Boid
         public Vector3 AlignmentForce;
     }
 
-    protected virtual void Awake()
+    public virtual void Restart()
     {
+        Debug.Log("Flock Count: " + _boidCount);
         _boids = new T[_boidCount];
-
+        _flock = new(_boidCount);
+        _bins = new(_boidCount);
+        UnityEngine.Random.InitState(12);
         for (int i = 0; i < _boidCount; i++)
         {
-            Vector3 pos = Random.insideUnitSphere * 1.0f;
-            Vector3 vel = Random.insideUnitSphere * 0.1f;
-            _boids[i] = Init(pos, vel);
+            Vector3 pos = UnityEngine.Random.insideUnitSphere * 1.0f;
+            Vector3 vel = UnityEngine.Random.insideUnitSphere * 0.1f;
+            T boid = Init(pos, vel);
+            _boids[i] = boid;
         }
     }
 
@@ -45,6 +56,9 @@ public abstract class Flocking<T> : MonoBehaviour where T : Boid
 
     protected virtual void Update()
     {
+        if(_binSearch)
+            UpdateBins();
+
         for (int i = 0; i < _boids.Length; ++i)
         {
             Boid currBoid = _boids[i];
@@ -60,23 +74,23 @@ public abstract class Flocking<T> : MonoBehaviour where T : Boid
                 + flock.AlignmentForce  * _alignmentBias
                 + flock.SeparationForce * _sepparationBias;
 
-            currBoid.Acceleration.Limit(_maxForce);
-            ApplyWallRepellent(currBoid);
+            currBoid.Acceleration += CheckSimulationBounds(currBoid.Position) * _wallRepellForce;
 
             currBoid.Velocity += currBoid.Acceleration * Time.deltaTime;
             currBoid.Velocity.Limit(_maxSpeed);
             currBoid.Position += currBoid.Velocity * Time.deltaTime;
             currBoid.Acceleration = Vector3.zero;
             currBoid.OutsideUpdate();
-            //ColorBoidBasedOnDensity(_flock.Count - 1);
 
         }
-        //_spacePartitioning.Update(this);//drawing the tree
     }
     
     void Search(Boid boid, float perception, List<T> flock)
     {
-        NaiveSearch(boid, perception, flock);
+        if (_binSearch)
+            BinsSearch(boid, perception, flock);
+        else
+            NaiveSearch(boid, perception, flock);
     }
 
     void NaiveSearch(Boid currBoid, float perception, List<T> flock)
@@ -86,6 +100,63 @@ public abstract class Flocking<T> : MonoBehaviour where T : Boid
             if (boid != currBoid && Vector3.Distance(currBoid.Position, boid.Position) <= perception)
                 flock.Add(boid);
         }
+    }
+
+    void BinsSearch(Boid currBoid, float perception, List<T> flock)
+    {
+        int searchRadius = Mathf.CeilToInt(perception * _binSize); // how many bins to check
+        Vector3Int centerBin = GetBoidBin(currBoid);
+
+        for (int x = -searchRadius; x <= searchRadius; x++)
+            for (int y = -searchRadius; y <= searchRadius; y++)
+                for (int z = -searchRadius; z <= searchRadius; z++)
+                {
+                    Vector3Int offset = new(x, y, z);
+                    Vector3Int neighborBin = centerBin + offset;
+
+                    if (!_bins.TryGetValue(neighborBin, out List<T> binBoids)) continue;
+
+                    foreach (T boid in binBoids)
+                    {
+                        if (boid != currBoid && Vector3.SqrMagnitude(currBoid.Position - boid.Position) <= perception * perception)
+                        {
+                            flock.Add(boid);
+                        }
+                    }
+                }
+    }
+
+    void UpdateBins()
+    {
+        foreach (List<T> list in _bins.Values)
+        {
+            list.Clear();
+        }
+
+        foreach (var boid in _boids)
+        {
+            Vector3Int bin = GetBoidBin(boid);
+            if (_bins.TryGetValue(bin, out List<T> list))
+            {
+                list.Add(boid);
+            }
+            else
+            {
+                _bins.Add(bin, new List<T>() { boid });
+            }
+        }
+    }
+
+    Vector3Int GetBoidBin(Boid boid)
+    {
+        Vector3 pos = boid.Position;
+        return new((int)(pos.x * _binSize), (int)(pos.y * _binSize), (int)(pos.z * _binSize));
+    }
+
+    Vector3Int GetBoidBin(T boid)
+    {
+        Vector3 pos = boid.Position;
+        return new((int)(pos.x * _binSize), (int)(pos.y * _binSize), (int)(pos.z * _binSize));
     }
 
     FlockData GetFlockData(List<T> flock, Boid currBoid)
@@ -120,59 +191,27 @@ public abstract class Flocking<T> : MonoBehaviour where T : Boid
         flockData.SeparationForce.Limit(_maxForce);
         //cohesion
         flockData.CohesionForce /= closeBoidsCount;
+        flockData.CohesionForce -= currBoid.Position;
         flockData.CohesionForce.SetLength(_maxSpeed);
-        flockData.CohesionForce -= currBoid.Position + currBoid.Velocity;
+        flockData.CohesionForce -=  currBoid.Velocity;
         flockData.CohesionForce.Limit(_maxForce);
 
         return flockData;
     }
 
-    //void ColorBoidBasedOnDensity(float density, float maxCount = 50)
-    //{
-
-    //    float ratio = 1 - density / maxCount;
-    //    ratio = Mathf.Clamp(ratio, 0, 1);
-    //    Color red = Color.red;
-    //    Color green = Color.green;
-
-    //    int gradientR = (int)Utils.Lerp(red.r, green.r, ratio);
-    //    int gradientG = (int)Utils.Lerp(red.g, green.g, ratio);
-    //    int gradientB = (int)Utils.Lerp(red.b, green.b, ratio);
-
-    //}
-
-    void TeleportBetweenEdges(Boid boid)
+    Vector3 CheckSimulationBounds(Vector3 position)
     {
-        if (boid.Position.x < 0)
-            boid.Position.x = _areaSize.x;
+        Vector3 wc = Vector3.zero;
+        Vector3 ws = _areaSize;
 
-        if (boid.Position.x > _areaSize.x)
-            boid.Position.x = 0;
+        Vector3 acc = new(0, 0, 0);
 
-        if (boid.Position.y < 0)
-            boid.Position.y = _areaSize.y;
+        acc.x = (position.x < wc.x - ws.x * 0.5f) ? 1.0f : ((position.x > wc.x + ws.x * 0.5f) ? -1.0f : 0.0f);
+        acc.y = (position.y < wc.y - ws.y * 0.5f) ? 1.0f : ((position.y > wc.y + ws.y * 0.5f) ? -1.0f : 0.0f);
+        acc.z = (position.z < wc.z - ws.z * 0.5f) ? 1.0f : ((position.z > wc.z + ws.z * 0.5f) ? -1.0f : 0.0f);
 
-        if (boid.Position.y > _areaSize.y)
-            boid.Position.y = 0;
+
+        return acc;
     }
-    void ApplyWallRepellent(Boid boid)
-    {
-        if (boid.Position.x < 0)
-            boid.Acceleration.x = _wallRepellForce;
 
-        if (boid.Position.x > _areaSize.x)
-            boid.Acceleration.x = -_wallRepellForce;
-
-        if (boid.Position.y < 0)
-            boid.Acceleration.y = _wallRepellForce;
-
-        if (boid.Position.y > _areaSize.y)
-            boid.Acceleration.y = -_wallRepellForce;
-
-        if (boid.Position.z < 0)
-            boid.Acceleration.z = _wallRepellForce;
-
-        if (boid.Position.z > _areaSize.z)
-            boid.Acceleration.z = -_wallRepellForce;
-    }
 }

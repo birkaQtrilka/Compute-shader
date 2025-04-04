@@ -26,11 +26,22 @@ public class ComputeShaderFlock : Flocking<GameObjectBoid>
 
     BoidData[] boidDataArr;
     Vector3[] forceArr;
+    bool _started;
 
-    protected override void Awake()
+    public override void Restart()
     {
+        for (int i = _container.childCount - 1; i >= 0; i--)
+        {
+            Destroy(_container.GetChild(i).gameObject);
+        }
+        Application.targetFrameRate = -1;
+        QualitySettings.vSyncCount = 0;
+        if (_boidCount < 1) return;
+        Debug.Log("Flock Count: " + _boidCount);
+
         InitBuffers();
         InitKernels();
+        _started = true;
     }
 
     protected override GameObjectBoid Init(Vector3 pos, Vector3 vel)
@@ -47,6 +58,7 @@ public class ComputeShaderFlock : Flocking<GameObjectBoid>
         forceArr = new Vector3[_boidCount];
         boidDataArr = new BoidData[_boidCount];
         _boids = new GameObjectBoid[_boidCount];
+        UnityEngine.Random.InitState(12);
 
         for (var i = 0; i < _boidCount; i++)
         {
@@ -71,7 +83,11 @@ public class ComputeShaderFlock : Flocking<GameObjectBoid>
         boidsComputeShader.GetKernelThreadGroupSizes(_steeringForcesKernelId, out _storedThreadGroupSize, out _, out _);
         var dispatchedThreadGroupSize = _boidCount / (int)_storedThreadGroupSize;
 
-        if (dispatchedThreadGroupSize % _storedThreadGroupSize == 0) return;
+        if (dispatchedThreadGroupSize % _storedThreadGroupSize == 0)
+        {
+            _dispatchedThreadGroupSize = _boidCount;
+            return;
+        }
 
         while (dispatchedThreadGroupSize % _storedThreadGroupSize != 0)
         {
@@ -79,15 +95,13 @@ public class ComputeShaderFlock : Flocking<GameObjectBoid>
             if (dispatchedThreadGroupSize % _storedThreadGroupSize != 0) continue;
 
             _dispatchedThreadGroupSize = dispatchedThreadGroupSize;
-
-            Debug.LogFormat("Initial threads: {0}", _storedThreadGroupSize);
-            Debug.LogFormat("Threads X used: {0}", _dispatchedThreadGroupSize);
             break;
         }
     }
 
     protected override void Update()
     {
+        if (!_started) return;
         Simulation(_steeringForcesKernelId, _boidsDataKernelId);
     }
 
@@ -103,9 +117,6 @@ public class ComputeShaderFlock : Flocking<GameObjectBoid>
         boidsComputeShader.SetBuffer(boidsDataKernelId, "_BoidsDataBufferRw", _boidsDataBuffer);
 
         boidsComputeShader.SetFloat("_PerceptionRadius", _persceptionDistance);
-        //boidsComputeShader.SetFloat("_CohesionRadius", _persceptionDistance);
-        //boidsComputeShader.SetFloat("_AlignmentRadius", _persceptionDistance);
-        //boidsComputeShader.SetFloat("_SeparationRadius", _persceptionDistance);
         boidsComputeShader.SetFloat("_BoidMaximumSpeed", _maxSpeed);
         boidsComputeShader.SetFloat("_BoidMaximumSteeringForce", _maxForce);
         boidsComputeShader.SetFloat("_SeparationWeight", _sepparationBias);
@@ -121,10 +132,10 @@ public class ComputeShaderFlock : Flocking<GameObjectBoid>
         boidsComputeShader.Dispatch(steeringForcesKernelId, _dispatchedThreadGroupSize, 1, 1);
         boidsComputeShader.Dispatch(boidsDataKernelId, _dispatchedThreadGroupSize, 1, 1);
 
-        _boidsDataBuffer.GetData(boidDataArr);  // Copy data from GPU buffer to CPU array
+        _boidsDataBuffer.GetData(boidDataArr);  
         for (int i = 0; i < _boidCount; i++)
         {
-            _boids[i].Velocity = boidDataArr[i].velocity;  // Update your boid objects
+            _boids[i].Velocity = boidDataArr[i].velocity;  
             _boids[i].Position = boidDataArr[i].position;  
             _boids[i].OutsideUpdate();
         }
