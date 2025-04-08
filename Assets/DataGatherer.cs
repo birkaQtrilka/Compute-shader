@@ -1,4 +1,7 @@
 using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using UnityEngine;
 
@@ -9,7 +12,8 @@ public class DataGatherer : MonoBehaviour
     [SerializeField] int[] _boidCounts;
     [SerializeField] GameObjectFlock _goFlock;
     [SerializeField] ComputeShaderFlock _csFlock;
-    
+    [SerializeField] bool _writeToCSV;
+
     WaitForSeconds _startWait;
     
     float[] _framesData;
@@ -20,9 +24,18 @@ public class DataGatherer : MonoBehaviour
         _framesData = new float[_dataFrames];
         StartCoroutine(Gather());
     }
+    
+    struct BoidData
+    {
+        public float Mean;
+        public float Max;
+        public float Min;
+    }
 
     IEnumerator Gather()
     {
+        List<BoidData> dataList = new (_boidCounts.Length);
+
         foreach (int count in _boidCounts)
         {
             if(_goFlock.gameObject.activeInHierarchy)
@@ -42,8 +55,32 @@ public class DataGatherer : MonoBehaviour
                 yield return null;
                 _framesData[i] = 1f / Time.deltaTime;
             }
+            BoidData set = new()
+            {
+                Mean = _framesData.Average(),
+                Min = _framesData.Min(),
+                Max = _framesData.Max(),
+            };
 
-            Debug.Log("Mean: " + _framesData.Average() + "\tMin: " + _framesData.Min() + "\tMax: " + _framesData.Max());
+            dataList.Add(set);
+            Debug.Log("Mean: " + set.Mean + "\tMin: " + set.Min + "\tMax: " + set.Max);
+        }
+        if(_writeToCSV)
+        {
+            char s = ';';
+            string filePath = Path.Combine(Application.dataPath, "BoidsData.csv");
+            using var writer = new StreamWriter(filePath);
+            // Write header
+            writer.WriteLine($"Mean{s}Min{s}Max");
+
+            // Write each record
+            foreach (BoidData data in dataList)
+            {
+                writer.WriteLine($"{data.Mean}{s}{data.Min}{s}{data.Max}");
+            }
+#if UNITY_EDITOR
+            UnityEditor.AssetDatabase.Refresh();
+#endif
         }
 
         Debug.Log("Test ended");
