@@ -99,7 +99,7 @@ public class ComputeShaderFlock : Flocking<GameObjectBoid>
         }
     }
 
-    protected override void Update()
+    void Update()
     {
         if (!_started) return;
         Simulation(_steeringForcesKernelId, _boidsDataKernelId);

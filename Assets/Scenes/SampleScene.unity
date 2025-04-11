@@ -169,7 +169,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &215350971
 Transform:
   m_ObjectHideFlags: 0
@@ -520,7 +520,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &637822337
 Transform:
   m_ObjectHideFlags: 0
@@ -557,8 +557,6 @@ MonoBehaviour:
   _cohesionBias: 1
   _sepparationBias: 1.5
   _wallRepellForce: 20
-  _binSize: 0.5
-  _binSearch: 0
   boidsComputeShader: {fileID: 7200000, guid: 1ab5f0abc20690940ac28c58f9d71f65, type: 3}
   _boidPrefab: {fileID: 4751594190050871997, guid: e0b53a53f1c26f64bac5eccb9d7e6bcb, type: 3}
   _container: {fileID: 403931266}
@@ -663,7 +661,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1355382321
 Transform:
   m_ObjectHideFlags: 0
@@ -693,10 +691,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _waitTime: 1
   _dataFrames: 200
-  _boidCounts: c80000002c01000090010000
+  _boidCounts: c80000002c010000
   _goFlock: {fileID: 1668732961}
   _csFlock: {fileID: 637822338}
-  _writeToCSV: 1
+  _writeToCSV: 0
 --- !u!114 &1355382323
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -788,7 +786,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1668732961
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -810,11 +808,11 @@ MonoBehaviour:
   _cohesionBias: 1
   _sepparationBias: 1.5
   _wallRepellForce: 20
-  _binSize: 0.2
-  _binSearch: 1
   _boidPrefab: {fileID: 4751594190050871997, guid: e0b53a53f1c26f64bac5eccb9d7e6bcb, type: 3}
   _container: {fileID: 403931266}
   _rotationSpeed: 50
+  _binSize: 0.5
+  _binSearch: 1
 --- !u!4 &1668732962
 Transform:
   m_ObjectHideFlags: 0
