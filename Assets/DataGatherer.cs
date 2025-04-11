@@ -68,19 +68,24 @@ public class DataGatherer : MonoBehaviour
         if(_writeToCSV)
         {
             char s = ';';
-            string filePath = Path.Combine(Application.dataPath, "BoidsData.csv");
+            //string filePath = Path.Combine(Application.dataPath, "BoidsData.csv");
+            string filePath = Path.Combine(Application.persistentDataPath, "BoidsData.csv");
+            Debug.Log("Writing to: " + filePath);
             using var writer = new StreamWriter(filePath);
             // Write header
             writer.WriteLine($"Mean{s}Min{s}Max");
-
+            var culture = new CultureInfo("de-DE");
             // Write each record
             foreach (BoidData data in dataList)
             {
-                writer.WriteLine($"{data.Mean}{s}{data.Min}{s}{data.Max}");
+                writer.WriteLine($"{data.Mean.ToString(culture)}{s}" +
+                 $"{data.Min.ToString(culture)}{s}" +
+                 $"{data.Max.ToString(culture)}");
+
             }
-#if UNITY_EDITOR
-            UnityEditor.AssetDatabase.Refresh();
-#endif
+//#if UNITY_EDITOR
+//            UnityEditor.AssetDatabase.Refresh();
+//#endif
         }
 
         Debug.Log("Test ended");

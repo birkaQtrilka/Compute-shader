@@ -169,7 +169,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &215350971
 Transform:
   m_ObjectHideFlags: 0
@@ -214,7 +214,7 @@ MonoBehaviour:
   _boidCounts: 6400000096000000e100000052010000fb010000f802000074040000ae060000050a0000080f00008c160000d2210000bb320000184c0000
   _goFlock: {fileID: 1668732961}
   _csFlock: {fileID: 637822338}
-  _writeToCSV: 0
+  _writeToCSV: 1
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -663,7 +663,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1355382321
 Transform:
   m_ObjectHideFlags: 0
@@ -756,10 +756,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _waitTime: 5
   _dataFrames: 200
-  _boidCounts: 52010000fb010000f802000074040000ae060000050a0000
+  _boidCounts: 96000000bb000000e0000000050100002a0100004f0100007401000099010000be010000e3010000080200002b02000052020000770200009c020000
   _goFlock: {fileID: 1668732961}
   _csFlock: {fileID: 637822338}
-  _writeToCSV: 0
+  _writeToCSV: 1
 --- !u!114 &1545017572
 MonoBehaviour:
   m_ObjectHideFlags: 0

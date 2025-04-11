@@ -1,8 +1,8 @@
 #pragma kernel SteeringForcesCS
 #pragma kernel BoidsDataCS
 
-#define THREAD_GROUP_SIZE 128
-#define TABLE_SIZE 1024
+#define THREAD_GROUP_SIZE 32
+//#define TABLE_SIZE 1024
 
 struct BoidData
 {
