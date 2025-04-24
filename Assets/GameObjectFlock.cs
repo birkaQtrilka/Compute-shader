@@ -14,6 +14,7 @@ public class GameObjectFlock : Flocking<GameObjectBoid>
     [SerializeField] float _rotationSpeed;
     [SerializeField] protected float _binSize = .5f;
     [SerializeField] bool _binSearch;
+    [SerializeField] bool _debugBins = false;
     Dictionary<Vector3Int, List<GameObjectBoid>> _bins;
     List<GameObjectBoid> _flock;
 
@@ -147,7 +148,7 @@ public class GameObjectFlock : Flocking<GameObjectBoid>
 
     void OnDrawGizmos()
     {
-        if (_bins == null) return;
+        if (!_debugBins || _bins == null) return;
 
         // Set the gizmo color (semi-transparent cyan in this case)
         Gizmos.color = new Color(0, 1, 1, 0.3f);

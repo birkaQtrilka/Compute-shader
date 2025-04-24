@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
+using static UnityEngine.Analytics.IAnalytic;
 
 public class DataGatherer : MonoBehaviour
 {
@@ -13,6 +15,7 @@ public class DataGatherer : MonoBehaviour
     [SerializeField] GameObjectFlock _goFlock;
     [SerializeField] ComputeShaderFlock _csFlock;
     [SerializeField] bool _writeToCSV;
+    [SerializeField] bool _stopGathering;
 
     WaitForSeconds _startWait;
     
@@ -54,6 +57,13 @@ public class DataGatherer : MonoBehaviour
             {
                 yield return null;
                 _framesData[i] = 1f / Time.deltaTime;
+
+                if(_stopGathering)
+                {
+                    _stopGathering = false;
+                    WriteOnCsv(dataList);
+                    yield break;
+                }
             }
             BoidData set = new()
             {
@@ -65,29 +75,32 @@ public class DataGatherer : MonoBehaviour
             dataList.Add(set);
             Debug.Log("Mean: " + set.Mean + "\tMin: " + set.Min + "\tMax: " + set.Max);
         }
+
         if(_writeToCSV)
         {
-            char s = ';';
-            //string filePath = Path.Combine(Application.dataPath, "BoidsData.csv");
-            string filePath = Path.Combine(Application.persistentDataPath, "BoidsData.csv");
-            Debug.Log("Writing to: " + filePath);
-            using var writer = new StreamWriter(filePath);
-            // Write header
-            writer.WriteLine($"Mean{s}Min{s}Max");
-            var culture = new CultureInfo("de-DE");
-            // Write each record
-            foreach (BoidData data in dataList)
-            {
-                writer.WriteLine($"{data.Mean.ToString(culture)}{s}" +
-                 $"{data.Min.ToString(culture)}{s}" +
-                 $"{data.Max.ToString(culture)}");
-
-            }
-//#if UNITY_EDITOR
-//            UnityEditor.AssetDatabase.Refresh();
-//#endif
+           WriteOnCsv(dataList);
         }
 
         Debug.Log("Test ended");
+    }
+
+    void WriteOnCsv(List<BoidData> dataList)
+    {
+        char s = ';';
+        //string filePath = Path.Combine(Application.dataPath, "BoidsData.csv");
+        string filePath = Path.Combine(Application.persistentDataPath, "BoidsData.csv");
+        Debug.Log("Writing to: " + filePath);
+        using var writer = new StreamWriter(filePath);
+        // Write header
+        writer.WriteLine($"Mean{s}Min{s}Max");
+        var culture = new CultureInfo("de-DE");
+        // Write each record
+        foreach (BoidData data in dataList)
+        {
+            writer.WriteLine($"{data.Mean.ToString(culture)}{s}" +
+             $"{data.Min.ToString(culture)}{s}" +
+             $"{data.Max.ToString(culture)}");
+
+        }
     }
 }
